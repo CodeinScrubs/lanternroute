@@ -13,6 +13,7 @@ use proxybridge_rs::engine::{
 use proxybridge_rs::network_snapshot::{
     CommandSnapshot, assert_capture_routes_present, assert_no_competing_capture_routes,
     capture_routes_present, collect_network_snapshots, format_snapshot_section,
+    proxybridge_interface_present,
 };
 use proxybridge_rs::rules::{normalize_domain, normalize_process_name, parse_rule_lines};
 use proxybridge_rs::smoke::{
@@ -158,6 +159,7 @@ fn stop(args: PathArgs) -> Result<()> {
     let paths = EnginePaths::new(args.engine_dir, args.config_path)?;
     let exe = paths.sing_box_exe();
     let (running, stopped_pids) = stop_owned_engines(&exe)?;
+    wait_for_capture_cleanup()?;
     println!("{}", format_stop_summary(&running, &stopped_pids));
     Ok(())
 }
@@ -523,6 +525,22 @@ fn ensure_capture_routes_absent() -> Result<()> {
         );
     }
     Ok(())
+}
+
+fn wait_for_capture_cleanup() -> Result<()> {
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    loop {
+        let snapshots = collect_network_snapshots();
+        if !capture_routes_present(&snapshots) && !proxybridge_interface_present(&snapshots) {
+            return Ok(());
+        }
+        if std::time::Instant::now() >= deadline {
+            bail!(
+                "ProxyBridgeRS cleanup is incomplete: capture routes or the ProxyBridgeRS interface remain. Re-run Stop after a few seconds or reboot Windows before starting again"
+            );
+        }
+        std::thread::sleep(Duration::from_millis(250));
+    }
 }
 
 fn run_smoke_checks(options: &RuntimeOptions, smoke_iterations: u8) -> Result<()> {

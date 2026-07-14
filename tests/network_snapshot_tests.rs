@@ -1,6 +1,6 @@
 use proxybridge_rs::network_snapshot::{
     CommandSnapshot, assert_capture_routes_present, assert_no_competing_capture_routes,
-    capture_routes_present, format_snapshot_section,
+    capture_routes_present, format_snapshot_section, proxybridge_interface_present,
 };
 
 #[test]
@@ -124,4 +124,16 @@ fn proxybridge_route_is_not_reported_as_competing() {
     }];
 
     assert_no_competing_capture_routes(&snapshots).expect("owned route");
+}
+
+#[test]
+fn interface_presence_is_detected_only_from_the_interface_snapshot() {
+    let snapshots = vec![CommandSnapshot {
+        title: "Interfaces".into(),
+        command: "netsh.exe interface show interface".into(),
+        status: Some(0),
+        stdout: "Enabled    Connected    Dedicated    ProxyBridgeRS\r\n".into(),
+        stderr: String::new(),
+    }];
+    assert!(proxybridge_interface_present(&snapshots));
 }

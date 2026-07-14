@@ -119,6 +119,19 @@ pub fn capture_routes_present(snapshots: &[CommandSnapshot]) -> bool {
     assert_capture_routes_present(snapshots).is_ok()
 }
 
+pub fn proxybridge_interface_present(snapshots: &[CommandSnapshot]) -> bool {
+    snapshots
+        .iter()
+        .find(|snapshot| snapshot.title == "Interfaces")
+        .is_some_and(|snapshot| {
+            snapshot.status == Some(0)
+                && snapshot
+                    .stdout
+                    .lines()
+                    .any(|line| line.to_ascii_lowercase().contains("proxybridgers"))
+        })
+}
+
 /// Reject a more-specific public route owned by another interface. A pair of
 /// `/1` routes is otherwise insufficient evidence when a VPN or virtual
 /// adapter has a `/24`, `/32`, or similarly specific route for the destination.

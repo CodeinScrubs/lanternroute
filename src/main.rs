@@ -156,6 +156,11 @@ fn main() -> Result<()> {
 }
 
 fn stop(args: PathArgs) -> Result<()> {
+    if !is_elevated() {
+        bail!(
+            "Stopping a TUN session needs Administrator. Re-open PowerShell or the GUI as Administrator."
+        );
+    }
     let paths = EnginePaths::new(args.engine_dir, args.config_path)?;
     let exe = paths.sing_box_exe();
     let (running, stopped_pids) = stop_owned_engines(&exe)?;

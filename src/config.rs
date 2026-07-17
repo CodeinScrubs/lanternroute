@@ -1,3 +1,4 @@
+use crate::control_api::ControlApiEndpoint;
 use crate::endpoint::SocksEndpoint;
 use crate::rules::{RuleAction, RuleMatcher, UserRule};
 use serde_json::{Value, json};
@@ -27,6 +28,7 @@ pub struct RuntimeOptions {
     pub direct_ports: Vec<u16>,
     pub direct_port_ranges: Vec<String>,
     pub user_rules: Vec<UserRule>,
+    pub control_api: Option<ControlApiEndpoint>,
 }
 
 impl Default for RuntimeOptions {
@@ -51,6 +53,7 @@ impl Default for RuntimeOptions {
             direct_ports: Vec::new(),
             direct_port_ranges: Vec::new(),
             user_rules: Vec::new(),
+            control_api: None,
         }
     }
 }
@@ -193,7 +196,7 @@ pub fn build_sing_box_config(options: &RuntimeOptions) -> Value {
         );
     }
 
-    json!({
+    let mut config = json!({
         "log": {
             "level": options.log_level,
             "timestamp": true
@@ -265,7 +268,20 @@ pub fn build_sing_box_config(options: &RuntimeOptions) -> Value {
             "final": "proxy",
             "rules": route_rules
         }
-    })
+    });
+
+    // The loopback Clash API powers the live connection table. It is only
+    // enabled when the controller allocated a per-session secret for it.
+    if let Some(api) = &options.control_api {
+        config["experimental"] = json!({
+            "clash_api": {
+                "external_controller": format!("127.0.0.1:{}", api.port),
+                "secret": api.secret
+            }
+        });
+    }
+
+    config
 }
 
 fn user_rule_to_value(rule: &UserRule) -> Value {

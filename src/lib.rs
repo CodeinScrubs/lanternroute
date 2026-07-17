@@ -1,6 +1,7 @@
 pub mod admin;
 pub mod browser_reset;
 pub mod config;
+pub mod control_api;
 pub mod endpoint;
 pub mod engine;
 pub mod gui_support;

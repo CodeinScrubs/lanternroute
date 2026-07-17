@@ -29,6 +29,11 @@ First public release.
 
 ### Diagnostics and lifecycle
 
+- Live connection table with per-connection traffic counters and session
+  totals via the `connections` CLI command and the GUI Connections button,
+  served by a loopback-only engine API secured with a random per-session
+  secret.
+
 - SOCKS5 probing that proves no-auth handshake, TCP CONNECT, UDP ASSOCIATE,
   and a real UDP relay round-trip; mode validation refuses configurations the
   upstream cannot honor.

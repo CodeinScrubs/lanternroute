@@ -29,6 +29,11 @@ Internet
 - **Direct rules:** loopback and proxy-engine processes bypass the tunnel to
   prevent a routing loop. Users can add more process names, CIDRs, domains,
   and ports.
+- **Control API:** during `run` and the live test, the engine exposes its
+  Clash-compatible API on `127.0.0.1` with a random per-session secret stored
+  under the runtime folder. The `connections` CLI command and the GUI
+  Connections button use it for the live connection table and traffic
+  counters. It is never bound to a non-loopback address.
 
 sing-box documents `auto_route` as setting the default route to TUN,
 `route_address` as the custom capture route list, and `strict_route` as a
@@ -122,10 +127,10 @@ we should compare observable behavior rather than claim an exact internal
 architecture. See the [official Proxifier feature list](https://www.proxifier.com/features.html).
 
 This project currently has a stronger whole-device route model and a simpler
-open-source deployment, but it does not yet match Proxifier's connection
-table, proxy chains, service/tray integration, or signed installer. Its ordered
-rule editor now covers the core process/IP/domain/port/protocol actions, but it
-does not yet have Proxifier's mature connection-table UX.
+open-source deployment, and it now has a live connection table with traffic
+counters (CLI and GUI). It does not yet match Proxifier's proxy chains,
+service/tray integration, signed installer, or auto-refreshing
+connection-table UX.
 
 ### Official ProxyBridge
 
@@ -156,8 +161,9 @@ and [callout guidance](https://learn.microsoft.com/en-us/windows-hardware/driver
 1. Keep the current TUN path as the default whole-device mode.
 2. Keep the ordered `proxy`, `direct`, and `block` rule editor aligned with
    sing-box route capabilities and add clearer per-rule diagnostics.
-3. Add a live connection table and traffic counters sourced from the engine,
-   with filtering and a clear rule/outbound explanation.
+3. Extend the live connection table (already available via the `connections`
+   command and GUI button) with filtering, sorting, and an auto-refreshing
+   view.
 4. Add multiple SOCKS profiles, latency checks, failover, and a deliberate
    "fail closed" policy when the upstream disappears.
 5. Add a tray controller and a Windows service/helper so the data plane can

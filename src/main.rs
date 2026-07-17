@@ -3,6 +3,10 @@ use clap::{ArgAction, Args, Parser, Subcommand};
 use proxybridge_rs::admin::is_elevated;
 use proxybridge_rs::browser_reset::reset_browser_connections_with_context;
 use proxybridge_rs::config::{DnsMode, RuntimeOptions, build_sing_box_config};
+use proxybridge_rs::control_api::{
+    allocate_control_api, fetch_connections, format_connections_report, load_control_api,
+    save_control_api,
+};
 use proxybridge_rs::endpoint::SocksEndpoint;
 use proxybridge_rs::engine::{
     EnginePaths, ProcessJob, acquire_engine_lock, check_sing_box_config, ensure_sing_box_ready,
@@ -49,6 +53,8 @@ enum Commands {
     EnsureEngine(PathArgs),
     /// Stop an already-running owned bundled sing-box engine.
     Stop(PathArgs),
+    /// Show live connections and traffic counters from the running tunnel.
+    Connections(PathArgs),
     /// Reset existing Chrome/Firefox/Telegram TCP sessions so they reconnect through TUN.
     ResetBrowsers,
 }
@@ -147,12 +153,21 @@ fn main() -> Result<()> {
             Ok(())
         }
         Commands::Stop(args) => stop(args),
+        Commands::Connections(args) => connections(args),
         Commands::ResetBrowsers => {
             let summary = reset_browser_connections_with_context()?;
             println!("inspected={} reset={}", summary.inspected, summary.reset);
             Ok(())
         }
     }
+}
+
+fn connections(args: PathArgs) -> Result<()> {
+    let paths = EnginePaths::new(args.engine_dir, args.config_path)?;
+    let endpoint = load_control_api(&paths.control_api_path())?;
+    let snapshot = fetch_connections(&endpoint)?;
+    print!("{}", format_connections_report(&snapshot));
+    Ok(())
 }
 
 fn stop(args: PathArgs) -> Result<()> {
@@ -189,11 +204,14 @@ fn run(args: RunArgs) -> Result<()> {
         );
     }
 
-    let options = options_from_args(&args)?;
+    let mut options = options_from_args(&args)?;
+    let control_api = allocate_control_api()?;
+    options.control_api = Some(control_api.clone());
     let paths = EnginePaths::new(args.engine_dir, args.config_path)?;
     let exe = ensure_sing_box_ready(&paths)?;
     write_runtime_config(&paths, &options)?;
     check_sing_box_config(&exe, &paths.config_path)?;
+    save_control_api(&paths.control_api_path(), &control_api)?;
     ensure_capture_routes_absent()?;
 
     println!("ProxyBridge RS starting TUN -> SOCKS {}", options.socks);
@@ -211,6 +229,9 @@ fn run(args: RunArgs) -> Result<()> {
     println!("Waiting for ProxyBridgeRS TUN routes...");
     let (mut child, _job) = start_foreground_with_ready_routes(&exe, &paths.config_path)?;
     println!("ProxyBridgeRS TUN routes are ready; traffic capture is active.");
+    println!(
+        "Live connection table: run `proxybridge-rs.exe connections` (or the GUI Connections button)."
+    );
 
     if options.reconnect_apps {
         match reset_browser_connections_with_context() {
@@ -270,7 +291,10 @@ fn run(args: RunArgs) -> Result<()> {
 }
 
 fn check(args: RunArgs) -> Result<()> {
-    let options = options_from_args(&args)?;
+    let mut options = options_from_args(&args)?;
+    // Validate the same config shape `run` will use, including the control
+    // API block, so an engine without Clash API support fails here first.
+    options.control_api = Some(allocate_control_api()?);
     let paths = EnginePaths::new(args.engine_dir, args.config_path)?;
     let exe = ensure_sing_box_ready(&paths)?;
     write_runtime_config(&paths, &options)?;
@@ -280,7 +304,8 @@ fn check(args: RunArgs) -> Result<()> {
 }
 
 fn doctor(args: RunArgs) -> Result<()> {
-    let options = options_from_args(&args)?;
+    let mut options = options_from_args(&args)?;
+    options.control_api = Some(allocate_control_api()?);
     let paths = EnginePaths::new(args.engine_dir, args.config_path)?;
 
     println!("ProxyBridge RS doctor");
@@ -369,7 +394,7 @@ fn smoke_test(args: RunArgs) -> Result<()> {
     }
     let _engine_lock = acquire_engine_lock()?;
 
-    let options = options_from_args(&args)?;
+    let mut options = options_from_args(&args)?;
     let socks_probe = probe_for_mode(
         &options.socks,
         Duration::from_millis(1000),
@@ -377,10 +402,13 @@ fn smoke_test(args: RunArgs) -> Result<()> {
     );
     validate_socks_for_mode(&options.socks, &socks_probe, args.allow_tcp_only)?;
 
+    let control_api = allocate_control_api()?;
+    options.control_api = Some(control_api.clone());
     let paths = EnginePaths::new(args.engine_dir, args.config_path)?;
     let exe = ensure_sing_box_ready(&paths)?;
     write_runtime_config(&paths, &options)?;
     check_sing_box_config(&exe, &paths.config_path)?;
+    save_control_api(&paths.control_api_path(), &control_api)?;
     ensure_capture_routes_absent()?;
 
     println!("Starting temporary TUN session...");

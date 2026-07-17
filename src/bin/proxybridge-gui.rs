@@ -73,6 +73,7 @@ mod windows_gui {
     const ID_GUIDE: i32 = 206;
     const ID_SAVE_PROFILE: i32 = 207;
     const ID_OPEN_RUNTIME: i32 = 208;
+    const ID_CONNECTIONS: i32 = 209;
     const ID_STATUS: i32 = 301;
     const ID_LOG: i32 = 302;
     const ID_GROUP_CONNECTION: i32 = 401;
@@ -515,6 +516,7 @@ mod windows_gui {
         button(hwnd, instance, ID_STOP, "Stop", 0, 0, 0, 0);
         button(hwnd, instance, ID_DOCTOR, "Doctor", 0, 0, 0, 0);
         button(hwnd, instance, ID_LIVE_TEST, "Live test", 0, 0, 0, 0);
+        button(hwnd, instance, ID_CONNECTIONS, "Connections", 0, 0, 0, 0);
         button(hwnd, instance, ID_RESET, "Reconnect", 0, 0, 0, 0);
         button(hwnd, instance, ID_SAVE_PROFILE, "Save profile", 0, 0, 0, 0);
         button(hwnd, instance, ID_GUIDE, "Guide", 0, 0, 0, 0);
@@ -605,12 +607,13 @@ mod windows_gui {
         move_control(hwnd, ID_RULES, 28, 482, width - 56, 68);
         move_control(hwnd, ID_LABEL_RULES_HINT, 28, 552, width - 56, 22);
 
-        let button_width = ((width - 44 - (8 * 6)) / 8).max(72);
+        let button_width = ((width - 44 - (9 * 6)) / 9).max(72);
         for (index, id) in [
             ID_START,
             ID_STOP,
             ID_DOCTOR,
             ID_LIVE_TEST,
+            ID_CONNECTIONS,
             ID_RESET,
             ID_SAVE_PROFILE,
             ID_GUIDE,
@@ -656,6 +659,7 @@ mod windows_gui {
                 "Live Test",
                 build_cli_args("smoke-test", &read_options(hwnd)),
             ),
+            ID_CONNECTIONS => run_one_shot(hwnd, "Connections", vec!["connections".to_string()]),
             ID_RESET => run_one_shot(hwnd, "Reset Apps", vec!["reset-browsers".to_string()]),
             ID_SAVE_PROFILE => save_current_profile(hwnd),
             ID_GUIDE => show_guide(hwnd),
@@ -1083,6 +1087,8 @@ mod windows_gui {
             "Modes\n",
             "TCP-only is the stable choice when Doctor reports no SOCKS5 UDP relay. It blocks remaining UDP instead of leaking it.\n",
             "Enable DNS via proxy only when your upstream supports it reliably. Allow QUIC/HTTP3 only when UDP relay is proven.\n\n",
+            "Connections\n",
+            "While the tunnel runs, the Connections button shows the live connection table: process, destination, matched rule, outbound, and per-connection traffic, plus session totals.\n\n",
             "Workflow\n",
             "1. Start v2rayN and leave its SOCKS listener enabled.\n",
             "2. Turn off v2rayN system proxy mode if you want ProxyBridge RS to own routing.\n",

@@ -32,6 +32,7 @@ Internet
 - **It proves itself before and after.** `doctor` probes the real SOCKS5 capabilities (no-auth handshake, TCP CONNECT, UDP ASSOCIATE, and an actual UDP relay round-trip — not just a handshake). The live test starts the tunnel, compares TUN egress against explicit SOCKS egress with latency stats, and verifies route installation. Start and Stop verify that capture routes appear and are fully removed.
 - **No routing loops.** Loopback and every common proxy engine (`v2rayN.exe`, `xray.exe`, `sing-box.exe`, clash/mihomo, nekoray, hysteria, and more) are bypassed automatically so the tunnel never captures its own upstream.
 - **Keeps your LAN working.** Printers, VMs, WSL, and private networks stay direct by default; capture them intentionally with one switch.
+- **Live connection table.** While the tunnel runs, `connections` (CLI) or the GUI **Connections** button shows every active connection — process, destination, matched rule, outbound, and per-connection traffic — plus session totals, powered by a loopback-only engine API secured with a fresh random secret per session.
 - **Reconnects your apps for you.** Already-open Chrome, Edge, Firefox, Brave, Opera, Vivaldi, and Telegram TCP sessions are reset after routes are ready, so they rejoin through the tunnel without restarting.
 - **Supply-chain pinned.** sing-box `1.13.14` and Wintun `0.14.1` are downloaded on first use from their official sources and verified against pinned SHA-256 hashes (archive *and* extracted binary) before anything runs.
 - **Ordered policy rules.** First-match `proxy` / `direct` / `block` rules over process, IP CIDR, domain, port, and transport — with DNS handling and fail-closed UDP guards that user rules cannot accidentally defeat.
@@ -48,7 +49,8 @@ Internet
 | Preflight + live proof diagnostics | Built in | Limited | Limited | — |
 | Custom user-mode packet relay to maintain | No — OS + sing-box handle packets | n/a | Yes (state, reinjection, fragmentation) | — |
 | Per-process rules | Yes (ordered rules + bypasses) | Yes (mature UI) | Yes | No |
-| Connection table UI, proxy chains | Not yet | Yes | No | — |
+| Live connection table + traffic counters | Yes (GUI + CLI) | Yes | No | — |
+| Proxy chains / failover | Not yet | Yes | No | — |
 
 Honest positioning: Proxifier has a more mature Windows lifecycle, connection table, and proxy-chain features; Clash Verge Rev has a broader management ecosystem. ProxyBridge RS's edge is a stronger whole-device route model, verified fail-closed behavior, and a simple open-source deployment. See [ARCHITECTURE.md](ARCHITECTURE.md) for the full comparison, including a future WFP-driver design.
 
@@ -69,6 +71,7 @@ The GUI relaunches itself as Administrator when needed. Recommended flow:
 - **Doctor** — preflight: SOCKS capabilities, engine provisioning, config validation.
 - **Live Test** — an elevated proof run that starts the tunnel temporarily and compares egress IPs and latency.
 - **Start / Stop** — daily use. Settings persist to `.runtime\gui-settings.json`; **Guide** explains every field.
+- **Connections** — live connection table with traffic counters while the tunnel runs.
 
 The GUI defaults to **TCP-only mode** because many v2rayN SOCKS ports handle TCP correctly but do not relay UDP. Uncheck it only when Doctor reports `SOCKS5 UDP relay: yes`.
 
@@ -91,11 +94,29 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Check-ProxyBridgeRS.ps1 -Sock
 powershell -ExecutionPolicy Bypass -File .\scripts\Stop-ProxyBridgeRS.ps1
 ```
 
-Or call the CLI directly — `run`, `check`, `doctor`, `smoke-test`, `print-config`, `ensure-engine`, `stop`, and `reset-browsers`:
+Or call the CLI directly — `run`, `check`, `doctor`, `smoke-test`, `print-config`, `ensure-engine`, `stop`, `connections`, and `reset-browsers`:
 
 ```powershell
 .\target\release\proxybridge-rs.exe run --socks 127.0.0.1:10808 --allow-tcp-only
 ```
+
+### Live connection table
+
+While the tunnel runs, show every active connection with its process, destination, matched rule, outbound, and traffic:
+
+```powershell
+$env:PROXYBRIDGE_RS_HOME = Join-Path (Get-Location) ".runtime"
+.\target\release\proxybridge-rs.exe connections
+```
+
+```text
+Active connections: 2  (session totals: up 1.2 MiB, down 48.3 MiB)
+PROTO PROCESS                  DESTINATION                          RULE                       OUTBOUND           UP       DOWN
+tcp   chrome.exe               www.youtube.com:443                  final                      proxy         310 KiB   42.1 MiB
+tcp   telegram.exe             149.154.167.51:443                   final                      proxy          88 KiB    5.9 MiB
+```
+
+The table is served by a loopback-only engine API protected by a random per-session secret, so no other machine — and no local process without file access to the runtime folder — can query or control the engine.
 
 ### Reading the Doctor report
 

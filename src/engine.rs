@@ -188,6 +188,13 @@ impl EnginePaths {
             .unwrap_or(&self.engine_dir)
             .join("logs")
     }
+
+    pub fn control_api_path(&self) -> PathBuf {
+        self.config_path
+            .parent()
+            .unwrap_or(&self.engine_dir)
+            .join("control-api.json")
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

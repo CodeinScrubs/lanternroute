@@ -5,6 +5,10 @@ edition = "2024"
 rust-version = "1.85"
 license = "MIT"
 description = "Windows TUN-to-SOCKS whole-device proxy controller"
+readme = "README.md"
+keywords = ["proxy", "socks5", "tun", "windows", "networking"]
+categories = ["command-line-utilities", "network-programming"]
+publish = false
 
 [dependencies]
 anyhow = "1.0"
@@ -32,3 +36,10 @@ windows-sys = { version = "0.59", features = [
   "Win32_UI_Shell"
 ] }
 zip = "4.3"
+
+# Production binaries: link-time optimization and a single codegen unit for
+# smaller, faster executables; strip symbols from the shipped release.
+[profile.release]
+lto = true
+codegen-units = 1
+strip = "symbols"

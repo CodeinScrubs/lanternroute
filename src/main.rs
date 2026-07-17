@@ -250,10 +250,22 @@ fn run(args: RunArgs) -> Result<()> {
         }
         std::thread::sleep(Duration::from_millis(200));
     };
+
+    // A terminated engine can leave capture routes or the TUN adapter behind,
+    // which looks like "no internet" to the user. Verify Windows routing is
+    // actually restored before reporting a clean exit.
+    let cleanup_result = wait_for_capture_cleanup();
     if status.success() {
+        cleanup_result?;
+        println!("ProxyBridge RS stopped; Windows routing is restored.");
         Ok(())
     } else {
-        bail!("sing-box exited with {status}");
+        match cleanup_result {
+            Ok(()) => bail!("sing-box exited with {status}"),
+            Err(cleanup_error) => bail!(
+                "sing-box exited with {status}\nshutdown cleanup is also incomplete: {cleanup_error:#}"
+            ),
+        }
     }
 }
 
@@ -382,12 +394,13 @@ fn smoke_test(args: RunArgs) -> Result<()> {
     }
     let capture_result = assert_capture_routes_present(&snapshots);
     if capture_result.is_err() {
-        let cleanup_result = stop_sing_box_child(&mut child);
+        let cleanup_result =
+            stop_sing_box_child(&mut child).and_then(|()| wait_for_capture_cleanup());
         return combine_smoke_and_cleanup_results(capture_result, cleanup_result);
     }
 
     let result = run_smoke_checks(&options, args.smoke_iterations);
-    let stop_result = stop_sing_box_child(&mut child);
+    let stop_result = stop_sing_box_child(&mut child).and_then(|()| wait_for_capture_cleanup());
     combine_smoke_and_cleanup_results(result, stop_result)
 }
 
@@ -625,12 +638,15 @@ fn curl_text(label: &str, args: &[&str]) -> Result<CurlResult> {
     let started = std::time::Instant::now();
     let mut last_output = None;
     for attempt in 1..=3 {
+        // Time each attempt separately so retries and backoff sleeps do not
+        // inflate the latency samples reported by the smoke test.
+        let attempt_started = std::time::Instant::now();
         let output = std::process::Command::new("curl.exe")
             .args(&command_args)
             .output()
             .context("running curl.exe")?;
         if output.status.success() {
-            let elapsed = started.elapsed();
+            let elapsed = attempt_started.elapsed();
             let body = String::from_utf8_lossy(&output.stdout).trim().to_string();
             println!("{label}: curl completed in {} ms", elapsed.as_millis());
             return Ok(CurlResult {

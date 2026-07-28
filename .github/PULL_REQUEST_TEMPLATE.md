@@ -13,4 +13,4 @@ stale routes?). See CONTRIBUTING.md. -->
 - [ ] `cargo fmt --all -- --check`
 - [ ] `cargo test --locked --all-targets`
 - [ ] `cargo clippy --locked --all-targets -- -D warnings`
-- [ ] For routing-affecting changes: ran `Doctor` and the elevated live test, and confirmed no `ProxyBridgeRS` adapter or owned sing-box process remains after Stop
+- [ ] For routing-affecting changes: ran `Doctor` and the elevated live test, and confirmed no `LanternRoute` adapter or owned sing-box process remains after Stop

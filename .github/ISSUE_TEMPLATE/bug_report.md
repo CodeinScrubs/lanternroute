@@ -9,7 +9,7 @@ labels: bug
 
 - Windows version/build:
 - CPU architecture:
-- ProxyBridge RS release/commit:
+- LanternRoute release/commit:
 - v2rayN/Xray/sing-box version:
 - SOCKS endpoint (omit credentials):
 - TCP-only or UDP mode:

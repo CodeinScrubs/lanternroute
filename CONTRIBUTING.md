@@ -1,12 +1,11 @@
 # Contributing
 
-ProxyBridge RS is a Windows-only Rust application. Changes that affect route
+LanternRoute is a Windows-only Rust application. Changes that affect route
 capture, DNS, SOCKS probing, process bypasses, or engine cleanup need focused
 tests and a clear failure-mode explanation.
 
-The declared minimum Rust version is 1.85, matching Rust 2024 edition support.
-CI is pinned to Rust 1.96.0 through `rust-toolchain.toml` for reproducible
-release builds.
+The declared minimum Rust version is 1.96.0. CI is pinned to the same toolchain
+through `rust-toolchain.toml` for reproducible release builds.
 
 ## Local verification
 
@@ -21,7 +20,7 @@ $env:RUSTUP_HOME = Join-Path (Get-Location) ".tools\rustup"
 & (Join-Path $env:CARGO_HOME "bin\cargo.exe") clippy --locked --all-targets -- -D warnings
 ```
 
-Use `Doctor` before starting a real tunnel. Use `Test-LiveProxyBridgeRS.ps1`
+Use `Doctor` before starting a real tunnel. Use `Test-LiveLanternRoute.ps1`
 only when the local SOCKS endpoint is available, and report whether the test
 was TCP-only or included a proven SOCKS5 UDP relay.
 

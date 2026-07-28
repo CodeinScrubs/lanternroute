@@ -17,7 +17,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: ProxyBridge RS version
+      label: LanternRoute version
       placeholder: e.g. 0.1.0 release ZIP, or commit hash if built from source
     validations:
       required: true

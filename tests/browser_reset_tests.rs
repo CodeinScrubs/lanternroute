@@ -1,4 +1,4 @@
-use proxybridge_rs::browser_reset::{
+use lanternroute::browser_reset::{
     BrowserResetCandidate, should_reset_connection, tcp_port_to_mib_dword,
 };
 use std::net::Ipv4Addr;

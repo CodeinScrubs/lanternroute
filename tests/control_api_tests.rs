@@ -1,5 +1,5 @@
-use proxybridge_rs::config::{RuntimeOptions, build_sing_box_config};
-use proxybridge_rs::control_api::{
+use lanternroute::config::{RuntimeOptions, build_sing_box_config};
+use lanternroute::control_api::{
     ConnectionsSnapshot, ControlApiEndpoint, allocate_control_api, format_bytes,
     format_connections_report, generate_secret, load_control_api, process_display,
     save_control_api,
@@ -26,7 +26,7 @@ fn allocated_endpoint_uses_a_nonzero_loopback_port() {
 #[test]
 fn control_api_state_round_trips_through_disk() {
     let dir = std::env::temp_dir().join(format!(
-        "proxybridge-rs-control-api-test-{}",
+        "lanternroute-control-api-test-{}",
         std::process::id()
     ));
     let path = dir.join("control-api.json");

@@ -53,7 +53,7 @@ fn is_browser_or_chat_app(process_name: &str) -> bool {
 fn is_proxy_engine(process_name: &str) -> bool {
     matches!(
         process_name.to_ascii_lowercase().as_str(),
-        "proxybridge-rs.exe"
+        "lanternroute.exe"
             | "sing-box.exe"
             | "v2rayn.exe"
             | "v2rayn.desktop.exe"

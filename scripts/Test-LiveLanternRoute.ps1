@@ -10,12 +10,13 @@ param(
     [string[]]$BypassDomain = @(),
     [string[]]$BypassPort = @(),
     [string[]]$Rule = @(),
+    [byte]$SmokeIterations = 3,
     [string]$LogLevel = "warn"
 )
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
-$Exe = Join-Path $Root "target\release\proxybridge-rs.exe"
+$Exe = Join-Path $Root "target\release\lanternroute.exe"
 if (!(Test-Path -LiteralPath $Exe)) {
     throw "Release binary not found. Run scripts\Build-Release.ps1 first."
 }
@@ -23,12 +24,12 @@ if (!(Test-Path -LiteralPath $Exe)) {
 $Principal = [Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
 $IsAdmin = $Principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (!$IsAdmin) {
-    throw "TUN mode needs Administrator. Open PowerShell as Administrator and run this script again."
+    throw "Live smoke test needs Administrator because it temporarily starts TUN routing."
 }
 
-$env:PROXYBRIDGE_RS_HOME = Join-Path $Root ".runtime"
+$env:LANTERNROUTE_HOME = Join-Path $Root ".runtime"
 
-$Args = @("run", "--socks", $Socks, "--log-level", $LogLevel)
+$Args = @("smoke-test", "--socks", $Socks, "--log-level", $LogLevel, "--smoke-iterations", $SmokeIterations)
 if ($DnsViaProxy) { $Args += "--dns-via-proxy" }
 if ($AllowQuic) { $Args += "--allow-quic" }
 if ($NoReconnectApps) { $Args += "--no-reconnect-apps" }

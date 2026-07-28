@@ -2,7 +2,7 @@
 
 ## What the app uses
 
-ProxyBridge RS is a Windows controller around a pinned sing-box TUN data
+LanternRoute is a Windows controller around a pinned sing-box TUN data
 plane:
 
 ```text
@@ -10,7 +10,7 @@ Windows applications
         |
 Windows IP routing table
         |
-ProxyBridgeRS TUN adapter (Wintun)
+LanternRoute TUN adapter (Wintun)
         |
 sing-box route rules and DNS handling
         |
@@ -72,7 +72,7 @@ xray.exe, v2rayN.exe, game.exe
 
 Do not enter a full path such as `C:\\Apps\\game.exe`. Find the actual name in
 Task Manager -> Details. The match is against the process name, not the window
-title or a shortcut name. ProxyBridge RS always includes its own engine and
+title or a shortcut name. LanternRoute always includes its own engine and
 known proxy-engine names automatically.
 
 ### IP networks

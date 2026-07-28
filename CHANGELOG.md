@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.2.0
+
+LanternRoute public launch. This release rebrands the former ProxyBridge RS
+prototype and adds the live connection table, authenticated loopback control
+API, and a polished Windows release workflow.
+
+### Public release
+
+- New product name, executable names, runtime directory, environment variable,
+  TUN interface name, helper scripts, and package name: `LanternRoute`.
+- MIT-licensed Windows release package with SHA-256 checksums and automated
+  GitHub tag publishing.
+- README rewritten around the daily v2rayN/Xray SOCKS5 workflow, capability
+  limits, routing policy, diagnostics, and troubleshooting.
+
+### Observability
+
+- Live connection table with process, destination, matched rule, outbound, and
+  per-connection traffic counters in both CLI and GUI.
+- Loopback-only sing-box control API with a fresh per-session bearer secret.
+
 ## 0.1.0
 
 First public release.

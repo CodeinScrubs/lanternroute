@@ -1,6 +1,6 @@
-use proxybridge_rs::config::{DnsMode, RuntimeOptions, build_sing_box_config};
-use proxybridge_rs::endpoint::SocksEndpoint;
-use proxybridge_rs::rules::parse_rule_lines;
+use lanternroute::config::{DnsMode, RuntimeOptions, build_sing_box_config};
+use lanternroute::endpoint::SocksEndpoint;
+use lanternroute::rules::parse_rule_lines;
 use serde_json::Value;
 
 fn default_options() -> RuntimeOptions {
@@ -15,7 +15,7 @@ fn default_config_is_tun_first_and_routes_to_socks() {
     let config = build_sing_box_config(&default_options());
 
     assert_eq!(config["inbounds"][0]["type"], "tun");
-    assert_eq!(config["inbounds"][0]["interface_name"], "ProxyBridgeRS");
+    assert_eq!(config["inbounds"][0]["interface_name"], "LanternRoute");
     assert_eq!(config["inbounds"][0]["auto_route"], true);
     assert_eq!(config["inbounds"][0]["strict_route"], true);
     assert_eq!(config["inbounds"][0]["stack"], "mixed");
@@ -98,7 +98,7 @@ fn default_config_bypasses_local_proxy_engine_processes() {
         "clash-verge.exe",
         "nekoray.exe",
         "shadowsocks-windows.exe",
-        "proxybridge-rs.exe",
+        "lanternroute.exe",
     ] {
         assert!(
             names.contains(&required),

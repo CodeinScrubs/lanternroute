@@ -6,8 +6,8 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $Release = Join-Path $Root "target\release"
 $PackageRoot = Join-Path $Root "target\package"
-$Stage = Join-Path $PackageRoot "ProxyBridge-RS-$Version-windows-x64"
-$Archive = Join-Path $PackageRoot "ProxyBridge-RS-$Version-windows-x64.zip"
+$Stage = Join-Path $PackageRoot "LanternRoute-$Version-windows-x64"
+$Archive = Join-Path $PackageRoot "LanternRoute-$Version-windows-x64.zip"
 $Checksums = Join-Path $PackageRoot "SHA256SUMS.txt"
 $PackageRelease = Join-Path $Stage "target\release"
 
@@ -25,7 +25,7 @@ if ($changelog -notmatch "(?m)^##\s+$([regex]::Escape($Version))\s*$") {
     throw "CHANGELOG.md has no release section for version $Version."
 }
 
-foreach ($name in @("proxybridge-gui.exe", "proxybridge-rs.exe")) {
+foreach ($name in @("lanternroute-gui.exe", "lanternroute.exe")) {
     $path = Join-Path $Release $name
     if (!(Test-Path -LiteralPath $path)) {
         throw "Release binary not found: $path. Run scripts\Build-Release.ps1 first."
@@ -37,8 +37,8 @@ if (Test-Path -LiteralPath $PackageRoot) {
 }
 New-Item -ItemType Directory -Path $PackageRelease -Force | Out-Null
 
-Copy-Item (Join-Path $Release "proxybridge-gui.exe") $PackageRelease
-Copy-Item (Join-Path $Release "proxybridge-rs.exe") $PackageRelease
+Copy-Item (Join-Path $Release "lanternroute-gui.exe") $PackageRelease
+Copy-Item (Join-Path $Release "lanternroute.exe") $PackageRelease
 Copy-Item (Join-Path $Root "scripts") (Join-Path $Stage "scripts") -Recurse
 Copy-Item (Join-Path $Root "README.md") $Stage
 Copy-Item (Join-Path $Root "LICENSE") $Stage
@@ -47,6 +47,8 @@ Copy-Item (Join-Path $Root "RELEASE_CHECKLIST.md") $Stage
 Copy-Item (Join-Path $Root "ARCHITECTURE.md") $Stage
 Copy-Item (Join-Path $Root "THIRD_PARTY.md") $Stage
 Copy-Item (Join-Path $Root "SECURITY.md") $Stage
+Copy-Item (Join-Path $Root "SUPPORT.md") $Stage
+Copy-Item (Join-Path $Root "CODE_OF_CONDUCT.md") $Stage
 
 Compress-Archive -Path (Join-Path $Stage "*") -DestinationPath $Archive -CompressionLevel Optimal
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $Archive).Hash.ToLowerInvariant()

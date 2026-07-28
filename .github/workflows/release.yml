@@ -48,5 +48,5 @@ jobs:
           RELEASE_VERSION: ${{ github.ref_name }}
         run: |
           $version = $env:RELEASE_VERSION -replace '^v', ''
-          $package = "target/package/ProxyBridge-RS-$version-windows-x64.zip"
-          gh release create $env:RELEASE_VERSION $package target/package/SHA256SUMS.txt --generate-notes --title "ProxyBridge RS $env:RELEASE_VERSION"
+          $package = "target/package/LanternRoute-$version-windows-x64.zip"
+          gh release create $env:RELEASE_VERSION $package target/package/SHA256SUMS.txt --generate-notes --title "LanternRoute $env:RELEASE_VERSION"

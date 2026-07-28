@@ -1,4 +1,4 @@
-use proxybridge_rs::socks_probe::{
+use lanternroute::socks_probe::{
     SocksProbeResult, parse_socks5_method_response, parse_socks5_udp_associate_response,
     require_udp_for_all_app_coverage, validate_socks_for_mode,
 };

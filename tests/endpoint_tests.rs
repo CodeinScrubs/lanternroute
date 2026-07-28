@@ -1,4 +1,4 @@
-use proxybridge_rs::endpoint::SocksEndpoint;
+use lanternroute::endpoint::SocksEndpoint;
 
 #[test]
 fn parses_ipv4_socks_endpoint() {

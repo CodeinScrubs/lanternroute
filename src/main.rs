@@ -1,36 +1,36 @@
 use anyhow::{Context, Result, bail};
 use clap::{ArgAction, Args, Parser, Subcommand};
-use proxybridge_rs::admin::is_elevated;
-use proxybridge_rs::browser_reset::reset_browser_connections_with_context;
-use proxybridge_rs::config::{DnsMode, RuntimeOptions, build_sing_box_config};
-use proxybridge_rs::control_api::{
+use lanternroute::admin::is_elevated;
+use lanternroute::browser_reset::reset_browser_connections_with_context;
+use lanternroute::config::{DnsMode, RuntimeOptions, build_sing_box_config};
+use lanternroute::control_api::{
     allocate_control_api, fetch_connections, format_connections_report, load_control_api,
     save_control_api,
 };
-use proxybridge_rs::endpoint::SocksEndpoint;
-use proxybridge_rs::engine::{
+use lanternroute::endpoint::SocksEndpoint;
+use lanternroute::engine::{
     EnginePaths, ProcessJob, acquire_engine_lock, check_sing_box_config, ensure_sing_box_ready,
     find_running_owned_engines, format_stop_summary, sing_box_version, start_sing_box_foreground,
     start_sing_box_quiet_with_logs, stop_owned_engines, stop_sing_box_child,
     tun_start_failure_hint, write_runtime_config,
 };
-use proxybridge_rs::network_snapshot::{
+use lanternroute::network_snapshot::{
     CommandSnapshot, assert_capture_routes_present, assert_no_competing_capture_routes,
     capture_routes_present, collect_network_snapshots, format_snapshot_section,
-    proxybridge_interface_present,
+    lanternroute_interface_present,
 };
-use proxybridge_rs::rules::{normalize_domain, normalize_process_name, parse_rule_lines};
-use proxybridge_rs::smoke::{
+use lanternroute::rules::{normalize_domain, normalize_process_name, parse_rule_lines};
+use lanternroute::smoke::{
     assert_dns_https_ok, assert_same_egress_ip, combine_smoke_and_cleanup_results,
     summarize_latency,
 };
-use proxybridge_rs::socks_probe::{probe_socks5, probe_socks5_tcp, validate_socks_for_mode};
+use lanternroute::socks_probe::{probe_socks5, probe_socks5_tcp, validate_socks_for_mode};
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::time::Duration;
 
 #[derive(Parser, Debug)]
-#[command(name = "proxybridge-rs")]
+#[command(name = "lanternroute", version)]
 #[command(about = "Windows TUN-to-SOCKS whole-device proxy controller")]
 struct Cli {
     #[command(subcommand)]
@@ -86,7 +86,7 @@ struct RunArgs {
     #[arg(long, default_value_t = false)]
     allow_tcp_only: bool,
 
-    /// sing-box engine directory. Defaults to %LOCALAPPDATA%\ProxyBridgeRS\engine.
+    /// sing-box engine directory. Defaults to %LOCALAPPDATA%\LanternRoute\engine.
     #[arg(long)]
     engine_dir: Option<PathBuf>,
 
@@ -129,7 +129,7 @@ struct RunArgs {
 
 #[derive(Args, Clone, Debug)]
 struct PathArgs {
-    /// sing-box engine directory. Defaults to %LOCALAPPDATA%\ProxyBridgeRS\engine.
+    /// sing-box engine directory. Defaults to %LOCALAPPDATA%\LanternRoute\engine.
     #[arg(long)]
     engine_dir: Option<PathBuf>,
 
@@ -214,7 +214,7 @@ fn run(args: RunArgs) -> Result<()> {
     save_control_api(&paths.control_api_path(), &control_api)?;
     ensure_capture_routes_absent()?;
 
-    println!("ProxyBridge RS starting TUN -> SOCKS {}", options.socks);
+    println!("LanternRoute starting TUN -> SOCKS {}", options.socks);
     println!("Config: {}", paths.config_path.display());
     println!("Engine: {}", exe.display());
     println!("Wintun: {}", paths.wintun_dll().display());
@@ -226,11 +226,11 @@ fn run(args: RunArgs) -> Result<()> {
     })
     .context("installing Ctrl+C handler")?;
 
-    println!("Waiting for ProxyBridgeRS TUN routes...");
+    println!("Waiting for LanternRoute TUN routes...");
     let (mut child, _job) = start_foreground_with_ready_routes(&exe, &paths.config_path)?;
-    println!("ProxyBridgeRS TUN routes are ready; traffic capture is active.");
+    println!("LanternRoute TUN routes are ready; traffic capture is active.");
     println!(
-        "Live connection table: run `proxybridge-rs.exe connections` (or the GUI Connections button)."
+        "Live connection table: run `lanternroute.exe connections` (or the GUI Connections button)."
     );
 
     if options.reconnect_apps {
@@ -278,7 +278,7 @@ fn run(args: RunArgs) -> Result<()> {
     let cleanup_result = wait_for_capture_cleanup();
     if status.success() {
         cleanup_result?;
-        println!("ProxyBridge RS stopped; Windows routing is restored.");
+        println!("LanternRoute stopped; Windows routing is restored.");
         Ok(())
     } else {
         match cleanup_result {
@@ -308,7 +308,7 @@ fn doctor(args: RunArgs) -> Result<()> {
     options.control_api = Some(allocate_control_api()?);
     let paths = EnginePaths::new(args.engine_dir, args.config_path)?;
 
-    println!("ProxyBridge RS doctor");
+    println!("LanternRoute doctor");
     println!("Admin: {}", yes_no(is_elevated()));
     println!("SOCKS: {}", options.socks);
     let socks_probe = probe_socks5(&options.socks, Duration::from_millis(1000));
@@ -348,7 +348,7 @@ fn doctor(args: RunArgs) -> Result<()> {
     println!("TCP-only allowed: {}", yes_no(args.allow_tcp_only));
     println!("Bypass loopback: 127.0.0.0/8, ::1/128, ::ffff:127.0.0.0/104");
     println!(
-        "Bypass proxy engines: xray.exe, v2ray.exe, v2rayN.exe, sing-box.exe, proxybridge-rs.exe"
+        "Bypass proxy engines: xray.exe, v2ray.exe, v2rayN.exe, sing-box.exe, lanternroute.exe"
     );
     println!("Log level: {}", options.log_level);
     let mode_error =
@@ -463,7 +463,7 @@ fn wait_for_tun_ready(
 
         if std::time::Instant::now() >= deadline {
             assert_capture_routes_present(&last_snapshots)
-                .context("timed out waiting for ProxyBridgeRS split routes")?;
+                .context("timed out waiting for LanternRoute split routes")?;
         }
 
         std::thread::sleep(interval);
@@ -494,7 +494,7 @@ fn wait_for_capture_routes_with_child(
 
         if std::time::Instant::now() >= deadline {
             assert_capture_routes_present(&last_snapshots)
-                .context("timed out waiting for ProxyBridgeRS split routes")?;
+                .context("timed out waiting for LanternRoute split routes")?;
         }
 
         std::thread::sleep(interval);
@@ -567,7 +567,7 @@ fn ensure_capture_routes_absent() -> Result<()> {
         .context("checking for competing VPN/virtual-adapter routes before startup")?;
     if capture_routes_present(&snapshots) {
         bail!(
-            "ProxyBridgeRS already has capture routes before startup; stop the stale tunnel or reboot Windows before retrying"
+            "LanternRoute already has capture routes before startup; stop the stale tunnel or reboot Windows before retrying"
         );
     }
     Ok(())
@@ -577,12 +577,12 @@ fn wait_for_capture_cleanup() -> Result<()> {
     let deadline = std::time::Instant::now() + Duration::from_secs(5);
     loop {
         let snapshots = collect_network_snapshots();
-        if !capture_routes_present(&snapshots) && !proxybridge_interface_present(&snapshots) {
+        if !capture_routes_present(&snapshots) && !lanternroute_interface_present(&snapshots) {
             return Ok(());
         }
         if std::time::Instant::now() >= deadline {
             bail!(
-                "ProxyBridgeRS cleanup is incomplete: capture routes or the ProxyBridgeRS interface remain. Re-run Stop after a few seconds or reboot Windows before starting again"
+                "LanternRoute cleanup is incomplete: capture routes or the LanternRoute interface remain. Re-run Stop after a few seconds or reboot Windows before starting again"
             );
         }
         std::thread::sleep(Duration::from_millis(250));
@@ -708,7 +708,7 @@ fn probe_for_mode(
     endpoint: &SocksEndpoint,
     timeout: Duration,
     allow_tcp_only: bool,
-) -> proxybridge_rs::socks_probe::SocksProbeResult {
+) -> lanternroute::socks_probe::SocksProbeResult {
     if allow_tcp_only {
         probe_socks5_tcp(endpoint, timeout)
     } else {

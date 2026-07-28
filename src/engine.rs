@@ -52,7 +52,7 @@ impl Drop for EngineLock {
 pub fn acquire_engine_lock() -> Result<EngineLock> {
     #[cfg(windows)]
     {
-        let name = std::ffi::OsStr::new("Global\\ProxyBridgeRS-Tunnel")
+        let name = std::ffi::OsStr::new("Global\\LanternRoute-Tunnel")
             .encode_wide()
             .chain(Some(0))
             .collect::<Vec<_>>();
@@ -66,7 +66,7 @@ pub fn acquire_engine_lock() -> Result<EngineLock> {
             unsafe {
                 let _ = CloseHandle(handle);
             }
-            bail!("another ProxyBridge RS tunnel controller is already running");
+            bail!("another LanternRoute tunnel controller is already running");
         }
         Ok(EngineLock { handle })
     }
@@ -204,13 +204,13 @@ pub struct RunningEngine {
 }
 
 pub fn default_data_dir() -> Result<PathBuf> {
-    if let Some(value) = std::env::var_os("PROXYBRIDGE_RS_HOME") {
+    if let Some(value) = std::env::var_os("LANTERNROUTE_HOME") {
         return Ok(PathBuf::from(value));
     }
 
     let base =
-        dirs::data_local_dir().context("could not find LOCALAPPDATA; set PROXYBRIDGE_RS_HOME")?;
-    Ok(base.join("ProxyBridgeRS"))
+        dirs::data_local_dir().context("could not find LOCALAPPDATA; set LANTERNROUTE_HOME")?;
+    Ok(base.join("LanternRoute"))
 }
 
 pub fn ensure_sing_box(paths: &EnginePaths) -> Result<PathBuf> {
@@ -695,7 +695,7 @@ pub fn format_running_engine_conflict(running: &[RunningEngine]) -> String {
         .collect::<Vec<_>>()
         .join("; ");
     format!(
-        "ProxyBridge RS sing-box engine is already running ({details}). Stop the existing tunnel first."
+        "LanternRoute sing-box engine is already running ({details}). Stop the existing tunnel first."
     )
 }
 

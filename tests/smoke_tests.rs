@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use proxybridge_rs::smoke::{
+use lanternroute::smoke::{
     assert_dns_https_ok, assert_same_egress_ip, combine_smoke_and_cleanup_results,
     summarize_latency,
 };

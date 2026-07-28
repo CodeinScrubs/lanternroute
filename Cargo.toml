@@ -1,8 +1,8 @@
 [package]
-name = "proxybridge-rs"
-version = "0.1.0"
+name = "lanternroute"
+version = "0.2.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.96"
 license = "MIT"
 description = "Windows TUN-to-SOCKS whole-device proxy controller"
 readme = "README.md"

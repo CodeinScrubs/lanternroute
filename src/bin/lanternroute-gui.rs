@@ -2,13 +2,13 @@
 
 #[cfg(not(windows))]
 fn main() {
-    eprintln!("ProxyBridge GUI is Windows-only.");
+    eprintln!("LanternRoute GUI is Windows-only.");
 }
 
 #[cfg(windows)]
 fn main() {
     if let Err(error) = windows_gui::run() {
-        windows_gui::message_box("ProxyBridge RS", &format!("{error:#}"));
+        windows_gui::message_box("LanternRoute", &format!("{error:#}"));
     }
 }
 
@@ -17,9 +17,9 @@ mod windows_gui {
     #![allow(unsafe_op_in_unsafe_fn)]
 
     use anyhow::{Context, Result, bail};
-    use proxybridge_rs::admin::is_elevated;
-    use proxybridge_rs::engine::{SING_BOX_VERSION, find_running_owned_engines};
-    use proxybridge_rs::gui_support::{
+    use lanternroute::admin::is_elevated;
+    use lanternroute::engine::{SING_BOX_VERSION, find_running_owned_engines};
+    use lanternroute::gui_support::{
         GuiOptions, build_cli_args, build_path_args, cli_exe_for_gui_exe, load_profile,
         runtime_home_for_gui_exe, save_profile,
     };
@@ -150,7 +150,7 @@ mod windows_gui {
 
         unsafe {
             let instance = GetModuleHandleW(null());
-            let class_name = wide("ProxyBridgeRsGui");
+            let class_name = wide("LanternRouteGui");
             let window_class = WNDCLASSW {
                 style: 0,
                 lpfnWndProc: Some(window_proc),
@@ -167,7 +167,7 @@ mod windows_gui {
                 bail!("RegisterClassW failed");
             }
 
-            let title = wide("ProxyBridge RS");
+            let title = wide("LanternRoute");
             let hwnd = CreateWindowExW(
                 0,
                 class_name.as_ptr(),
@@ -208,14 +208,14 @@ mod windows_gui {
             SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(state) as isize);
             SetTimer(hwnd, TIMER_ID, 200, None);
             set_status(hwnd, "Ready");
-            append_log(hwnd, "ProxyBridge RS GUI ready.");
+            append_log(hwnd, "LanternRoute GUI ready.");
             append_log(
                 hwnd,
                 "Use Doctor first if you want a preflight, then Start.",
             );
             append_log(
                 hwnd,
-                "Built-in direct: localhost/127.0.0.1/::1 plus v2rayN.exe, v2ray.exe, xray.exe, sing-box.exe, and ProxyBridge RS.",
+                "Built-in direct: localhost/127.0.0.1/::1 plus v2rayN.exe, v2ray.exe, xray.exe, sing-box.exe, and LanternRoute.",
             );
             append_log(
                 hwnd,
@@ -701,7 +701,7 @@ mod windows_gui {
 
         match Command::new(&cli)
             .args(&args)
-            .env("PROXYBRIDGE_RS_HOME", &runtime_home)
+            .env("LANTERNROUTE_HOME", &runtime_home)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -878,7 +878,7 @@ mod windows_gui {
         let label = label.to_string();
         match Command::new(&cli)
             .args(&args)
-            .env("PROXYBRIDGE_RS_HOME", &runtime_home)
+            .env("LANTERNROUTE_HOME", &runtime_home)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -902,7 +902,7 @@ mod windows_gui {
     fn spawn_reader<R: Read + Send + 'static>(reader: R, tx: Sender<GuiMessage>) {
         thread::spawn(move || {
             for line in BufReader::new(reader).lines().map_while(Result::ok) {
-                if line.contains("ProxyBridgeRS TUN routes are ready") {
+                if line.contains("LanternRoute TUN routes are ready") {
                     let _ = tx.send(GuiMessage::Ready);
                 }
                 let _ = tx.send(GuiMessage::Log(line));
@@ -948,7 +948,7 @@ mod windows_gui {
     ) -> std::io::Result<std::process::Output> {
         Command::new(cli)
             .args(build_path_args("stop"))
-            .env("PROXYBRIDGE_RS_HOME", runtime_home)
+            .env("LANTERNROUTE_HOME", runtime_home)
             .output()
     }
 
@@ -1068,7 +1068,7 @@ mod windows_gui {
 
     unsafe fn show_guide(hwnd: HWND) {
         let text = concat!(
-            "ProxyBridge RS quick guide\n\n",
+            "LanternRoute quick guide\n\n",
             "SOCKS endpoint\n",
             "Write host:port. For your v2rayN setup use 127.0.0.1:10808. Do not write a URL, scheme, or spaces.\n\n",
             "Bypass apps\n",
@@ -1091,13 +1091,13 @@ mod windows_gui {
             "While the tunnel runs, the Connections button shows the live connection table: process, destination, matched rule, outbound, and per-connection traffic, plus session totals.\n\n",
             "Workflow\n",
             "1. Start v2rayN and leave its SOCKS listener enabled.\n",
-            "2. Turn off v2rayN system proxy mode if you want ProxyBridge RS to own routing.\n",
+            "2. Turn off v2rayN system proxy mode if you want LanternRoute to own routing.\n",
             "3. Run Doctor, then Start. Stop restores the machine when you are done."
         );
         MessageBoxW(
             hwnd,
             wide(text).as_ptr(),
-            wide("ProxyBridge RS Guide").as_ptr(),
+            wide("LanternRoute Guide").as_ptr(),
             MB_OK | MB_ICONINFORMATION,
         );
     }

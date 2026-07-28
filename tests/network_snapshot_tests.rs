@@ -1,6 +1,6 @@
-use proxybridge_rs::network_snapshot::{
+use lanternroute::network_snapshot::{
     CommandSnapshot, assert_capture_routes_present, assert_no_competing_capture_routes,
-    capture_routes_present, format_snapshot_section, proxybridge_interface_present,
+    capture_routes_present, format_snapshot_section, lanternroute_interface_present,
 };
 
 #[test]
@@ -9,13 +9,13 @@ fn formats_successful_snapshot_section_with_output() {
         title: "IPv4 route".into(),
         command: "route.exe print 0.0.0.0".into(),
         status: Some(0),
-        stdout: "Interface List\r\nProxyBridgeRS".into(),
+        stdout: "Interface List\r\nLanternRoute".into(),
         stderr: String::new(),
     });
 
     assert!(section.contains("IPv4 route"));
     assert!(section.contains("status=0"));
-    assert!(section.contains("ProxyBridgeRS"));
+    assert!(section.contains("LanternRoute"));
 }
 
 #[test]
@@ -37,7 +37,7 @@ fn formats_failed_snapshot_section_with_error_output() {
 #[test]
 fn capture_route_assertion_accepts_all_split_routes() {
     let snapshots = vec![CommandSnapshot {
-        title: "ProxyBridgeRS split routes".into(),
+        title: "LanternRoute split routes".into(),
         command: "powershell.exe Get-NetRoute".into(),
         status: Some(0),
         stdout: "DestinationPrefix\r\n0.0.0.0/1\r\n128.0.0.0/1\r\n::/1\r\n8000::/1\r\n".into(),
@@ -50,7 +50,7 @@ fn capture_route_assertion_accepts_all_split_routes() {
 #[test]
 fn capture_route_assertion_rejects_missing_split_route() {
     let snapshots = vec![CommandSnapshot {
-        title: "ProxyBridgeRS split routes".into(),
+        title: "LanternRoute split routes".into(),
         command: "powershell.exe Get-NetRoute".into(),
         status: Some(0),
         stdout: "DestinationPrefix\r\n0.0.0.0/1\r\n128.0.0.0/1\r\n::/1\r\n".into(),
@@ -65,7 +65,7 @@ fn capture_route_assertion_rejects_missing_split_route() {
 #[test]
 fn capture_route_assertion_accepts_windows_decomposed_routes() {
     let snapshots = vec![CommandSnapshot {
-        title: "ProxyBridgeRS split routes".into(),
+        title: "LanternRoute split routes".into(),
         command: "powershell.exe Get-NetRoute".into(),
         status: Some(0),
         stdout: "0.0.0.0/5\r\n8.0.0.0/7\r\n128.0.0.0/3\r\n192.0.0.0/9\r\n::/1\r\n8000::/2\r\n"
@@ -79,14 +79,14 @@ fn capture_route_assertion_accepts_windows_decomposed_routes() {
 #[test]
 fn capture_route_predicate_reports_readiness_without_error_detail() {
     let ready = vec![CommandSnapshot {
-        title: "ProxyBridgeRS split routes".into(),
+        title: "LanternRoute split routes".into(),
         command: "powershell.exe Get-NetRoute".into(),
         status: Some(0),
         stdout: "0.0.0.0/1\r\n128.0.0.0/1\r\n::/1\r\n8000::/1\r\n".into(),
         stderr: String::new(),
     }];
     let not_ready = vec![CommandSnapshot {
-        title: "ProxyBridgeRS split routes".into(),
+        title: "LanternRoute split routes".into(),
         command: "powershell.exe Get-NetRoute".into(),
         status: Some(1),
         stdout: String::new(),
@@ -114,12 +114,12 @@ fn competing_public_route_is_rejected_with_interface_name() {
 }
 
 #[test]
-fn proxybridge_route_is_not_reported_as_competing() {
+fn lanternroute_route_is_not_reported_as_competing() {
     let snapshots = vec![CommandSnapshot {
         title: "All route ownership".into(),
         command: "powershell.exe Get-NetRoute".into(),
         status: Some(0),
-        stdout: "1.1.1.0/24|ProxyBridgeRS|5\r\n".into(),
+        stdout: "1.1.1.0/24|LanternRoute|5\r\n".into(),
         stderr: String::new(),
     }];
 
@@ -132,8 +132,8 @@ fn interface_presence_is_detected_only_from_the_interface_snapshot() {
         title: "Interfaces".into(),
         command: "netsh.exe interface show interface".into(),
         status: Some(0),
-        stdout: "Enabled    Connected    Dedicated    ProxyBridgeRS\r\n".into(),
+        stdout: "Enabled    Connected    Dedicated    LanternRoute\r\n".into(),
         stderr: String::new(),
     }];
-    assert!(proxybridge_interface_present(&snapshots));
+    assert!(lanternroute_interface_present(&snapshots));
 }

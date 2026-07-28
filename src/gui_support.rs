@@ -143,7 +143,7 @@ pub fn build_path_args(command: &str) -> Vec<String> {
 }
 
 pub fn cli_exe_for_gui_exe(gui_exe: &Path) -> PathBuf {
-    gui_exe.with_file_name("proxybridge-rs.exe")
+    gui_exe.with_file_name("lanternroute.exe")
 }
 
 pub fn runtime_home_for_gui_exe(gui_exe: &Path) -> PathBuf {
@@ -160,7 +160,7 @@ pub fn runtime_home_for_gui_exe(gui_exe: &Path) -> PathBuf {
     }
 
     if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-        return PathBuf::from(local_app_data).join("ProxyBridgeRS");
+        return PathBuf::from(local_app_data).join("LanternRoute");
     }
 
     exe_dir.join(".runtime")

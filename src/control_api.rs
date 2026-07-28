@@ -97,10 +97,10 @@ pub fn fetch_connections(endpoint: &ControlApiEndpoint) -> Result<ConnectionsSna
         .get(format!("http://127.0.0.1:{}/connections", endpoint.port))
         .bearer_auth(&endpoint.secret)
         .send()
-        .context("querying the tunnel control API; is a ProxyBridge RS tunnel running?")?;
+        .context("querying the tunnel control API; is a LanternRoute tunnel running?")?;
     if !response.status().is_success() {
         bail!(
-            "tunnel control API returned HTTP {}; the state file may be stale — restart the tunnel and retry",
+            "tunnel control API returned HTTP {}; the state file may be stale - restart the tunnel and retry",
             response.status()
         );
     }
@@ -194,6 +194,6 @@ fn truncate(value: &str, max: usize) -> String {
         value.to_string()
     } else {
         let kept: String = value.chars().take(max.saturating_sub(1)).collect();
-        format!("{kept}…")
+        format!("{kept}...")
     }
 }

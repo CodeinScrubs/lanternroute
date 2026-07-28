@@ -22,14 +22,14 @@ pub fn collect_network_snapshots() -> Vec<CommandSnapshot> {
         ("IPv4 default routes", "route.exe", vec!["print", "0.0.0.0"]),
         ("IPv6 default routes", "route.exe", vec!["print", "::/0"]),
         (
-            "ProxyBridgeRS split routes",
+            "LanternRoute split routes",
             "powershell.exe",
             vec![
                 "-NoProfile",
                 "-ExecutionPolicy",
                 "Bypass",
                 "-Command",
-                "Get-NetRoute -InterfaceAlias 'ProxyBridgeRS' | Select-Object -ExpandProperty DestinationPrefix",
+                "Get-NetRoute -InterfaceAlias 'LanternRoute' | Select-Object -ExpandProperty DestinationPrefix",
             ],
         ),
         (
@@ -72,11 +72,11 @@ pub fn run_snapshot_command(title: &str, program: &str, args: &[&str]) -> Comman
 pub fn assert_capture_routes_present(snapshots: &[CommandSnapshot]) -> Result<()> {
     let snapshot = snapshots
         .iter()
-        .find(|snapshot| snapshot.title == "ProxyBridgeRS split routes")
-        .context("missing ProxyBridgeRS split routes snapshot")?;
+        .find(|snapshot| snapshot.title == "LanternRoute split routes")
+        .context("missing LanternRoute split routes snapshot")?;
     if snapshot.status != Some(0) {
         bail!(
-            "ProxyBridgeRS split route snapshot failed with status {:?}: {}",
+            "LanternRoute split route snapshot failed with status {:?}: {}",
             snapshot.status,
             snapshot.stderr.trim()
         );
@@ -103,7 +103,7 @@ pub fn assert_capture_routes_present(snapshots: &[CommandSnapshot]) -> Result<()
     }
 
     bail!(
-        "ProxyBridgeRS route snapshot is missing capture coverage for {}",
+        "LanternRoute route snapshot is missing capture coverage for {}",
         missing.join(", ")
     );
 }
@@ -119,7 +119,7 @@ pub fn capture_routes_present(snapshots: &[CommandSnapshot]) -> bool {
     assert_capture_routes_present(snapshots).is_ok()
 }
 
-pub fn proxybridge_interface_present(snapshots: &[CommandSnapshot]) -> bool {
+pub fn lanternroute_interface_present(snapshots: &[CommandSnapshot]) -> bool {
     snapshots
         .iter()
         .find(|snapshot| snapshot.title == "Interfaces")
@@ -128,7 +128,7 @@ pub fn proxybridge_interface_present(snapshots: &[CommandSnapshot]) -> bool {
                 && snapshot
                     .stdout
                     .lines()
-                    .any(|line| line.to_ascii_lowercase().contains("proxybridgers"))
+                    .any(|line| line.to_ascii_lowercase().contains("lanternroute"))
         })
 }
 
@@ -167,7 +167,7 @@ pub fn assert_no_competing_capture_routes(snapshots: &[CommandSnapshot]) -> Resu
             continue;
         };
         let interface = fields.next().unwrap_or("unknown").trim();
-        if interface.eq_ignore_ascii_case("ProxyBridgeRS") || prefix.prefix_len() <= 1 {
+        if interface.eq_ignore_ascii_case("LanternRoute") || prefix.prefix_len() <= 1 {
             continue;
         }
         if public_destinations
@@ -183,7 +183,7 @@ pub fn assert_no_competing_capture_routes(snapshots: &[CommandSnapshot]) -> Resu
     }
 
     bail!(
-        "a more-specific public route may bypass ProxyBridgeRS: {}. Disconnect or disable the listed VPN/virtual adapter, then retry",
+        "a more-specific public route may bypass LanternRoute: {}. Disconnect or disable the listed VPN/virtual adapter, then retry",
         conflicts.join(", ")
     );
 }

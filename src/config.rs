@@ -40,7 +40,7 @@ impl Default for RuntimeOptions {
             tcp_only: false,
             reconnect_apps: true,
             proxy_local_networks: false,
-            interface_name: "ProxyBridgeRS".to_string(),
+            interface_name: "LanternRoute".to_string(),
             // 1500 is the interoperable default across Wi-Fi, VPN, and
             // virtual adapters; larger values remain available explicitly.
             mtu: 1500,
@@ -60,7 +60,7 @@ impl Default for RuntimeOptions {
 
 pub fn default_direct_process_names() -> Vec<String> {
     [
-        "proxybridge-rs.exe",
+        "lanternroute.exe",
         "sing-box.exe",
         "v2rayN.exe",
         "v2rayn.exe",

@@ -1,6 +1,6 @@
 # Release checklist
 
-1. Confirm the version in `Cargo.toml`, `CHANGELOG.md`, and the package command.
+1. Confirm the version in `Cargo.toml`, `Cargo.lock`, `CHANGELOG.md`, and the package command.
 2. Run `cargo fmt --all -- --check`, `cargo test --locked --all-targets`, and
    `cargo clippy --locked --all-targets -- -D warnings` on Windows.
 3. Run `scripts\Build-Release.ps1` and
@@ -12,7 +12,7 @@
    mode, route result, DNS result, and latency samples.
 7. Test Start, Stop, closing the GUI while active, repeated Stop clicks, and
    restarting after a failed start. Confirm no owned sing-box process or
-   `ProxyBridgeRS` adapter remains after cleanup.
+   `LanternRoute` adapter remains after cleanup.
 8. Push a `v<version>` tag to invoke `.github/workflows/release.yml`, or
    publish the ZIP, checksum, changelog, and source tag together manually. Do not
    publish `.runtime`, credentials, private proxy URLs, or local logs.

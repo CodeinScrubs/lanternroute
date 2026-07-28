@@ -1,4 +1,4 @@
-use proxybridge_rs::gui_support::{
+use lanternroute::gui_support::{
     GuiOptions, build_cli_args, build_path_args, cli_exe_for_gui_exe, load_profile, profile_path,
     runtime_home_for_gui_exe, save_profile,
 };
@@ -173,13 +173,13 @@ fn stop_args_do_not_require_proxy_options() {
 #[test]
 fn gui_finds_cli_binary_next_to_itself() {
     let cli = cli_exe_for_gui_exe(Path::new(
-        r"C:\Users\TestUser\Desktop\Work\15_proxybridge\target\release\proxybridge-gui.exe",
+        r"C:\Users\TestUser\Desktop\Work\15_lanternroute\target\release\lanternroute-gui.exe",
     ));
 
     assert_eq!(
         cli,
         Path::new(
-            r"C:\Users\TestUser\Desktop\Work\15_proxybridge\target\release\proxybridge-rs.exe"
+            r"C:\Users\TestUser\Desktop\Work\15_lanternroute\target\release\lanternroute.exe"
         )
     );
 }
@@ -187,22 +187,22 @@ fn gui_finds_cli_binary_next_to_itself() {
 #[test]
 fn release_build_uses_project_runtime_home() {
     let runtime = runtime_home_for_gui_exe(Path::new(
-        r"C:\Users\TestUser\Desktop\Work\15_proxybridge\target\release\proxybridge-gui.exe",
+        r"C:\Users\TestUser\Desktop\Work\15_lanternroute\target\release\lanternroute-gui.exe",
     ));
 
     assert_eq!(
         runtime,
-        Path::new(r"C:\Users\TestUser\Desktop\Work\15_proxybridge\.runtime")
+        Path::new(r"C:\Users\TestUser\Desktop\Work\15_lanternroute\.runtime")
     );
 }
 
 #[test]
 fn packaged_gui_uses_user_data_runtime_home() {
-    let installed = Path::new(r"C:\Program Files\ProxyBridgeRS\proxybridge-gui.exe");
+    let installed = Path::new(r"C:\Program Files\LanternRoute\lanternroute-gui.exe");
     let runtime = runtime_home_for_gui_exe(installed);
 
     if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
-        assert_eq!(runtime, Path::new(&local_app_data).join("ProxyBridgeRS"));
+        assert_eq!(runtime, Path::new(&local_app_data).join("LanternRoute"));
     } else {
         assert_eq!(runtime, installed.parent().unwrap().join(".runtime"));
     }
@@ -211,7 +211,7 @@ fn packaged_gui_uses_user_data_runtime_home() {
 #[test]
 fn gui_profile_round_trips_and_uses_the_runtime_home() {
     let root = std::env::temp_dir().join(format!(
-        "proxybridge-rs-gui-profile-test-{}",
+        "lanternroute-gui-profile-test-{}",
         std::process::id()
     ));
     let options = GuiOptions {
@@ -232,7 +232,7 @@ fn gui_profile_round_trips_and_uses_the_runtime_home() {
 #[test]
 fn incomplete_legacy_gui_profile_falls_back_to_defaults_per_field() {
     let root = std::env::temp_dir().join(format!(
-        "proxybridge-rs-gui-legacy-profile-test-{}",
+        "lanternroute-gui-legacy-profile-test-{}",
         std::process::id()
     ));
     std::fs::create_dir_all(&root).expect("create profile directory");

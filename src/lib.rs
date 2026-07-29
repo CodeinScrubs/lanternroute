@@ -7,5 +7,6 @@ pub mod engine;
 pub mod gui_support;
 pub mod network_snapshot;
 pub mod rules;
+pub mod runtime_status;
 pub mod smoke;
 pub mod socks_probe;

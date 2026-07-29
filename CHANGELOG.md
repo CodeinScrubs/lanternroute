@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.0
+
+Reliability and installation release.
+
+### Runtime lifecycle
+
+- Remove authenticated control API metadata on normal shutdown, startup
+  failure, smoke-test cleanup, and explicit Stop.
+- Refuse stale connection-table requests when no owned engine is running.
+- Add `status` to the CLI and GUI. It cross-checks the engine process, TUN
+  interface, capture routes, and live control API, reporting healthy, stopped,
+  or inconsistent state.
+
+### Distribution
+
+- Add per-user install and uninstall scripts with Start menu and optional
+  desktop shortcuts while preserving portable operation.
+- Refresh GitHub Actions and current Rust dependencies.
+
 ## 0.2.0
 
 LanternRoute public launch. This release rebrands the former ProxyBridge RS

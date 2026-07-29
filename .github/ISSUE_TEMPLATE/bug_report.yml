@@ -18,7 +18,7 @@ body:
     id: version
     attributes:
       label: LanternRoute version
-      placeholder: e.g. 0.1.0 release ZIP, or commit hash if built from source
+      placeholder: e.g. v0.3.0 release ZIP, or commit hash if built from source
     validations:
       required: true
   - type: input

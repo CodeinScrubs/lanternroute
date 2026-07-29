@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "0.1.0"
+    [string]$Version = "0.3.0"
 )
 
 $ErrorActionPreference = "Stop"
@@ -51,6 +51,29 @@ Copy-Item (Join-Path $Root "SUPPORT.md") $Stage
 Copy-Item (Join-Path $Root "CODE_OF_CONDUCT.md") $Stage
 
 Compress-Archive -Path (Join-Path $Stage "*") -DestinationPath $Archive -CompressionLevel Optimal
+
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$zip = [System.IO.Compression.ZipFile]::OpenRead($Archive)
+try {
+    $entries = @($zip.Entries | ForEach-Object { $_.FullName.Replace("\", "/") })
+    $requiredEntries = @(
+        "target/release/lanternroute-gui.exe",
+        "target/release/lanternroute.exe",
+        "scripts/Install-LanternRoute.ps1",
+        "scripts/Uninstall-LanternRoute.ps1",
+        "README.md",
+        "LICENSE",
+        "CHANGELOG.md"
+    )
+    foreach ($entry in $requiredEntries) {
+        if ($entries -notcontains $entry) {
+            throw "Release archive is missing required entry: $entry"
+        }
+    }
+} finally {
+    $zip.Dispose()
+}
+
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $Archive).Hash.ToLowerInvariant()
 Set-Content -LiteralPath $Checksums -Value "$hash  $(Split-Path -Leaf $Archive)" -Encoding ascii
 

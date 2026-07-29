@@ -4,8 +4,8 @@ use lanternroute::admin::is_elevated;
 use lanternroute::browser_reset::reset_browser_connections_with_context;
 use lanternroute::config::{DnsMode, RuntimeOptions, build_sing_box_config};
 use lanternroute::control_api::{
-    allocate_control_api, fetch_connections, format_connections_report, load_control_api,
-    save_control_api,
+    ControlApiStateGuard, allocate_control_api, fetch_connections, format_bytes,
+    format_connections_report, load_control_api, remove_control_api, save_control_api,
 };
 use lanternroute::endpoint::SocksEndpoint;
 use lanternroute::engine::{
@@ -20,6 +20,7 @@ use lanternroute::network_snapshot::{
     lanternroute_interface_present,
 };
 use lanternroute::rules::{normalize_domain, normalize_process_name, parse_rule_lines};
+use lanternroute::runtime_status::{RuntimeHealth, RuntimeSignals};
 use lanternroute::smoke::{
     assert_dns_https_ok, assert_same_egress_ip, combine_smoke_and_cleanup_results,
     summarize_latency,
@@ -55,6 +56,8 @@ enum Commands {
     Stop(PathArgs),
     /// Show live connections and traffic counters from the running tunnel.
     Connections(PathArgs),
+    /// Report whether the engine, TUN interface, routes, and control API agree.
+    Status(PathArgs),
     /// Reset existing Chrome/Firefox/Telegram TCP sessions so they reconnect through TUN.
     ResetBrowsers,
 }
@@ -154,6 +157,7 @@ fn main() -> Result<()> {
         }
         Commands::Stop(args) => stop(args),
         Commands::Connections(args) => connections(args),
+        Commands::Status(args) => status(args),
         Commands::ResetBrowsers => {
             let summary = reset_browser_connections_with_context()?;
             println!("inspected={} reset={}", summary.inspected, summary.reset);
@@ -164,10 +168,94 @@ fn main() -> Result<()> {
 
 fn connections(args: PathArgs) -> Result<()> {
     let paths = EnginePaths::new(args.engine_dir, args.config_path)?;
-    let endpoint = load_control_api(&paths.control_api_path())?;
+    let control_api_path = paths.control_api_path();
+    if find_running_owned_engines(&paths.sing_box_exe()).is_empty() {
+        bail!("No LanternRoute tunnel is running.");
+    }
+    let endpoint = load_control_api(&control_api_path)?;
     let snapshot = fetch_connections(&endpoint)?;
     print!("{}", format_connections_report(&snapshot));
     Ok(())
+}
+
+fn status(args: PathArgs) -> Result<()> {
+    let paths = EnginePaths::new(args.engine_dir, args.config_path)?;
+    let running = find_running_owned_engines(&paths.sing_box_exe());
+    let snapshots = collect_network_snapshots();
+    let capture_routes = capture_routes_present(&snapshots);
+    let tun_interface = lanternroute_interface_present(&snapshots);
+    let control_api_path = paths.control_api_path();
+    let control_api_result = if running.is_empty() {
+        None
+    } else {
+        Some(
+            load_control_api(&control_api_path)
+                .and_then(|endpoint| fetch_connections(&endpoint))
+                .map(|snapshot| {
+                    (
+                        snapshot.connections.unwrap_or_default().len(),
+                        snapshot.upload_total,
+                        snapshot.download_total,
+                    )
+                }),
+        )
+    };
+    let control_api_reachable = control_api_result.as_ref().is_some_and(Result::is_ok);
+    let signals = RuntimeSignals {
+        engine_running: !running.is_empty(),
+        capture_routes_present: capture_routes,
+        tun_interface_present: tun_interface,
+        control_api_reachable,
+    };
+
+    println!("LanternRoute status");
+    println!("Owned engine running: {}", yes_no(signals.engine_running));
+    for engine in &running {
+        println!(
+            "Owned engine process: pid={} path={}",
+            engine.pid,
+            engine.exe_path.display()
+        );
+    }
+    println!(
+        "Capture routes present: {}",
+        yes_no(signals.capture_routes_present)
+    );
+    println!(
+        "TUN interface present: {}",
+        yes_no(signals.tun_interface_present)
+    );
+    println!(
+        "Control API reachable: {}",
+        yes_no(signals.control_api_reachable)
+    );
+    if let Some(result) = control_api_result {
+        match result {
+            Ok((connections, upload, download)) => println!(
+                "Active connections: {connections} (session totals: up {}, down {})",
+                format_bytes(upload),
+                format_bytes(download)
+            ),
+            Err(error) => println!("Control API error: {error:#}"),
+        }
+    }
+
+    match signals.health() {
+        RuntimeHealth::Healthy => {
+            println!("Overall: healthy");
+            Ok(())
+        }
+        RuntimeHealth::Stopped => {
+            println!("Overall: stopped");
+            Ok(())
+        }
+        RuntimeHealth::Inconsistent => {
+            println!("Overall: inconsistent");
+            bail!(
+                "Runtime state is inconsistent. If startup or shutdown is in progress, retry in a few seconds; otherwise run `stop`, then `doctor`."
+            )
+        }
+    }
 }
 
 fn stop(args: PathArgs) -> Result<()> {
@@ -179,7 +267,10 @@ fn stop(args: PathArgs) -> Result<()> {
     let paths = EnginePaths::new(args.engine_dir, args.config_path)?;
     let exe = paths.sing_box_exe();
     let (running, stopped_pids) = stop_owned_engines(&exe)?;
-    wait_for_capture_cleanup()?;
+    let route_cleanup = wait_for_capture_cleanup();
+    let state_cleanup = remove_control_api(&paths.control_api_path());
+    route_cleanup?;
+    state_cleanup?;
     println!("{}", format_stop_summary(&running, &stopped_pids));
     Ok(())
 }
@@ -211,7 +302,9 @@ fn run(args: RunArgs) -> Result<()> {
     let exe = ensure_sing_box_ready(&paths)?;
     write_runtime_config(&paths, &options)?;
     check_sing_box_config(&exe, &paths.config_path)?;
-    save_control_api(&paths.control_api_path(), &control_api)?;
+    let control_api_path = paths.control_api_path();
+    save_control_api(&control_api_path, &control_api)?;
+    let mut control_api_state = ControlApiStateGuard::new(control_api_path);
     ensure_capture_routes_absent()?;
 
     println!("LanternRoute starting TUN -> SOCKS {}", options.socks);
@@ -275,7 +368,9 @@ fn run(args: RunArgs) -> Result<()> {
     // A terminated engine can leave capture routes or the TUN adapter behind,
     // which looks like "no internet" to the user. Verify Windows routing is
     // actually restored before reporting a clean exit.
-    let cleanup_result = wait_for_capture_cleanup();
+    let route_cleanup = wait_for_capture_cleanup();
+    let state_cleanup = control_api_state.cleanup();
+    let cleanup_result = route_cleanup.and(state_cleanup);
     if status.success() {
         cleanup_result?;
         println!("LanternRoute stopped; Windows routing is restored.");
@@ -408,7 +503,9 @@ fn smoke_test(args: RunArgs) -> Result<()> {
     let exe = ensure_sing_box_ready(&paths)?;
     write_runtime_config(&paths, &options)?;
     check_sing_box_config(&exe, &paths.config_path)?;
-    save_control_api(&paths.control_api_path(), &control_api)?;
+    let control_api_path = paths.control_api_path();
+    save_control_api(&control_api_path, &control_api)?;
+    let mut control_api_state = ControlApiStateGuard::new(control_api_path);
     ensure_capture_routes_absent()?;
 
     println!("Starting temporary TUN session...");
@@ -424,11 +521,13 @@ fn smoke_test(args: RunArgs) -> Result<()> {
     if capture_result.is_err() {
         let cleanup_result =
             stop_sing_box_child(&mut child).and_then(|()| wait_for_capture_cleanup());
+        let cleanup_result = cleanup_result.and(control_api_state.cleanup());
         return combine_smoke_and_cleanup_results(capture_result, cleanup_result);
     }
 
     let result = run_smoke_checks(&options, args.smoke_iterations);
     let stop_result = stop_sing_box_child(&mut child).and_then(|()| wait_for_capture_cleanup());
+    let stop_result = stop_result.and(control_api_state.cleanup());
     combine_smoke_and_cleanup_results(result, stop_result)
 }
 

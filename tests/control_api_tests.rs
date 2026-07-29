@@ -1,8 +1,8 @@
 use lanternroute::config::{RuntimeOptions, build_sing_box_config};
 use lanternroute::control_api::{
-    ConnectionsSnapshot, ControlApiEndpoint, allocate_control_api, format_bytes,
-    format_connections_report, generate_secret, load_control_api, process_display,
-    save_control_api,
+    ConnectionsSnapshot, ControlApiEndpoint, ControlApiStateGuard, allocate_control_api,
+    format_bytes, format_connections_report, generate_secret, load_control_api, process_display,
+    remove_control_api, save_control_api,
 };
 
 #[test]
@@ -40,6 +40,69 @@ fn control_api_state_round_trips_through_disk() {
     let _ = std::fs::remove_dir_all(&dir);
 
     assert_eq!(loaded, endpoint);
+}
+
+#[test]
+fn control_api_state_removal_is_idempotent() {
+    let dir = std::env::temp_dir().join(format!(
+        "lanternroute-control-api-remove-test-{}",
+        std::process::id()
+    ));
+    let path = dir.join("control-api.json");
+    let endpoint = ControlApiEndpoint {
+        port: 45123,
+        secret: "0123456789abcdef0123456789abcdef".to_string(),
+    };
+
+    save_control_api(&path, &endpoint).expect("save");
+    remove_control_api(&path).expect("remove existing state");
+    remove_control_api(&path).expect("remove missing state");
+    let _ = std::fs::remove_dir_all(&dir);
+
+    assert!(!path.exists());
+}
+
+#[test]
+fn control_api_guard_removes_state_on_drop() {
+    let dir = std::env::temp_dir().join(format!(
+        "lanternroute-control-api-guard-test-{}",
+        std::process::id()
+    ));
+    let path = dir.join("control-api.json");
+    let endpoint = ControlApiEndpoint {
+        port: 45123,
+        secret: "0123456789abcdef0123456789abcdef".to_string(),
+    };
+
+    save_control_api(&path, &endpoint).expect("save");
+    {
+        let _guard = ControlApiStateGuard::new(path.clone());
+        assert!(path.exists());
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+
+    assert!(!path.exists());
+}
+
+#[test]
+fn control_api_guard_explicit_cleanup_is_idempotent() {
+    let dir = std::env::temp_dir().join(format!(
+        "lanternroute-control-api-explicit-cleanup-test-{}",
+        std::process::id()
+    ));
+    let path = dir.join("control-api.json");
+    let endpoint = ControlApiEndpoint {
+        port: 45123,
+        secret: "0123456789abcdef0123456789abcdef".to_string(),
+    };
+
+    save_control_api(&path, &endpoint).expect("save");
+    let mut guard = ControlApiStateGuard::new(path.clone());
+    guard.cleanup().expect("first cleanup");
+    guard.cleanup().expect("second cleanup");
+    let _ = std::fs::remove_dir_all(&dir);
+
+    assert!(!path.exists());
 }
 
 #[test]

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::hash::{BuildHasher, Hasher, RandomState};
 use std::net::TcpListener;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 /// Loopback-only sing-box Clash API endpoint used for the live connection
@@ -46,6 +46,47 @@ pub fn save_control_api(path: &Path, endpoint: &ControlApiEndpoint) -> Result<()
     fs::create_dir_all(parent).with_context(|| format!("creating {}", parent.display()))?;
     let body = serde_json::to_string_pretty(endpoint).context("serializing control API state")?;
     fs::write(path, body).with_context(|| format!("writing {}", path.display()))
+}
+
+pub fn remove_control_api(path: &Path) -> Result<()> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error).with_context(|| format!("removing {}", path.display())),
+    }
+}
+
+/// Removes per-session control state whenever the owning controller exits,
+/// including startup failures and Ctrl+C shutdown.
+pub struct ControlApiStateGuard {
+    path: Option<PathBuf>,
+}
+
+impl ControlApiStateGuard {
+    pub fn new(path: impl Into<PathBuf>) -> Self {
+        Self {
+            path: Some(path.into()),
+        }
+    }
+
+    pub fn cleanup(&mut self) -> Result<()> {
+        let Some(path) = self.path.take() else {
+            return Ok(());
+        };
+        if let Err(error) = remove_control_api(&path) {
+            self.path = Some(path);
+            return Err(error);
+        }
+        Ok(())
+    }
+}
+
+impl Drop for ControlApiStateGuard {
+    fn drop(&mut self) {
+        if let Some(path) = &self.path {
+            let _ = remove_control_api(path);
+        }
+    }
 }
 
 pub fn load_control_api(path: &Path) -> Result<ControlApiEndpoint> {

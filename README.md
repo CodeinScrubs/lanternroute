@@ -14,8 +14,9 @@ LanternRoute turns a local SOCKS5 endpoint (v2rayN, Xray, or any client listenin
 The Rust controller owns everything around the data plane: a native GUI and CLI, config generation, engine provisioning with SHA-256 pinning, SOCKS capability probing, route-readiness verification, browser session reconnect, and fail-closed shutdown cleanup.
 
 Download [the latest LanternRoute release](https://github.com/CodeinScrubs/lanternroute/releases/latest)
-or [build it from source](#building-from-source). It is portable, MIT
-licensed, and designed for the common "v2rayN SOCKS on localhost" workflow.
+or [build it from source](#building-from-source). It includes a per-user
+installer and remains fully portable, MIT licensed, and designed for the
+common "v2rayN SOCKS on localhost" workflow.
 
 ```text
 Windows applications
@@ -39,10 +40,11 @@ Internet
 - **No routing loops.** Loopback and every common proxy engine (`v2rayN.exe`, `xray.exe`, `sing-box.exe`, clash/mihomo, nekoray, hysteria, and more) are bypassed automatically so the tunnel never captures its own upstream.
 - **Keeps your LAN working.** Printers, VMs, WSL, and private networks stay direct by default; capture them intentionally with one switch.
 - **Live connection table.** While the tunnel runs, `connections` (CLI) or the GUI **Connections** button shows every active connection - process, destination, matched rule, outbound, and per-connection traffic - plus session totals, powered by a loopback-only engine API secured with a fresh random secret per session.
+- **Truthful runtime status.** The GUI **Status** button and `status` CLI command cross-check the owned engine process, TUN interface, capture routes, and authenticated control API. Stale session metadata is removed automatically.
 - **Reconnects your apps for you.** Already-open Chrome, Edge, Firefox, Brave, Opera, Vivaldi, and Telegram TCP sessions are reset after routes are ready, so they rejoin through the tunnel without restarting.
 - **Supply-chain pinned.** sing-box `1.13.14` and Wintun `0.14.1` are downloaded on first use from their official sources and verified against pinned SHA-256 hashes (archive *and* extracted binary) before anything runs.
 - **Ordered policy rules.** First-match `proxy` / `direct` / `block` rules over process, IP CIDR, domain, port, and transport - with DNS handling and fail-closed UDP guards that user rules cannot accidentally defeat.
-- **Portable and small.** Two executables plus PowerShell helpers. No installer, no background service, no kernel driver to sign or trust.
+- **Easy to install or run portable.** A per-user installer creates Start menu and desktop shortcuts; the same two executables still run directly with no background service.
 
 ## How it compares
 
@@ -75,18 +77,21 @@ Requirements: Windows 10/11 x64, Administrator rights (TUN routes need them), an
 
 1. Start v2rayN, keep its local SOCKS port enabled, and turn **off** v2rayN's system proxy mode so LanternRoute owns routing.
 2. Grab a release ZIP (or [build from source](#building-from-source)).
-3. Launch the GUI:
+3. Extract it, then install:
 
 ```powershell
-.\target\release\lanternroute-gui.exe
+powershell -ExecutionPolicy Bypass -File .\scripts\Install-LanternRoute.ps1
 ```
 
-The GUI relaunches itself as Administrator when needed. Recommended flow:
+You can instead run `.\target\release\lanternroute-gui.exe` directly for
+portable use. The GUI relaunches itself as Administrator when needed.
+Recommended flow:
 
 - **Doctor** - preflight: SOCKS capabilities, engine provisioning, config validation.
 - **Live Test** - an elevated proof run that starts the tunnel temporarily and compares egress IPs and latency.
 - **Start / Stop** - daily use. Settings persist to `.runtime\gui-settings.json`; **Guide** explains every field.
 - **Connections** - live connection table with traffic counters while the tunnel runs.
+- **Status** - cross-checks the engine, TUN interface, capture routes, and control API.
 
 The GUI defaults to **TCP-only mode** because many v2rayN SOCKS ports handle TCP correctly but do not relay UDP. Uncheck it only when Doctor reports `SOCKS5 UDP relay: yes`.
 
@@ -107,9 +112,12 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Check-LanternRoute.ps1 -Socks
 
 # Stop a stale owned engine (targets only the bundled sing-box path)
 powershell -ExecutionPolicy Bypass -File .\scripts\Stop-LanternRoute.ps1
+
+# Cross-check engine, interface, routes, and control API
+powershell -ExecutionPolicy Bypass -File .\scripts\Status-LanternRoute.ps1
 ```
 
-Or call the CLI directly - `run`, `check`, `doctor`, `smoke-test`, `print-config`, `ensure-engine`, `stop`, `connections`, and `reset-browsers`:
+Or call the CLI directly - `run`, `check`, `doctor`, `smoke-test`, `print-config`, `ensure-engine`, `stop`, `status`, `connections`, and `reset-browsers`:
 
 ```powershell
 .\target\release\lanternroute.exe run --socks 127.0.0.1:10808 --allow-tcp-only
@@ -123,6 +131,16 @@ While the tunnel runs, show every active connection with its process, destinatio
 $env:LANTERNROUTE_HOME = Join-Path (Get-Location) ".runtime"
 .\target\release\lanternroute.exe connections
 ```
+
+Use `status` when you want a single health answer:
+
+```powershell
+.\target\release\lanternroute.exe status
+```
+
+`healthy` means the engine, TUN interface, capture routes, and control API all
+agree. `stopped` means no capture state remains. `inconsistent` is expected
+briefly during startup or shutdown; if it persists, run Stop and then Doctor.
 
 ```text
 Active connections: 2  (session totals: up 1.2 MiB, down 48.3 MiB)
@@ -244,10 +262,15 @@ Validate your exact Windows build, SOCKS profile, and applications with `Doctor`
 powershell -ExecutionPolicy Bypass -File .\scripts\Build-Release.ps1
 
 # Release ZIP + SHA-256 checksum
-powershell -ExecutionPolicy Bypass -File .\scripts\Package-Release.ps1 -Version 0.1.0
+powershell -ExecutionPolicy Bypass -File .\scripts\Package-Release.ps1 -Version 0.3.0
 ```
 
-The portable package keeps the documented layout: executables under `target\release`, helper scripts under `scripts`. sing-box and Wintun are **not** redistributed in the repo or ZIP - they are downloaded on first use and hash-verified (see [THIRD_PARTY.md](THIRD_PARTY.md)).
+The package keeps the documented portable layout: executables under
+`target\release`, helper and install scripts under `scripts`. The installer
+copies the executables to `%LOCALAPPDATA%\Programs\LanternRoute`; uninstalling
+keeps settings by default and supports `-RemoveRuntime` for a complete removal.
+sing-box and Wintun are **not** redistributed in the repo or ZIP - they are
+downloaded on first use and hash-verified (see [THIRD_PARTY.md](THIRD_PARTY.md)).
 
 ## Runtime files
 

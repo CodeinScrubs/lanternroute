@@ -35,7 +35,7 @@ windows-sys = { version = "0.61", features = [
   "Win32_UI_WindowsAndMessaging",
   "Win32_UI_Shell"
 ] }
-zip = "4.3"
+zip = "9.0"
 
 # Production binaries: link-time optimization and a single codegen unit for
 # smaller, faster executables; strip symbols from the shipped release.
